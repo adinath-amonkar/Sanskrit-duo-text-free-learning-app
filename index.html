@@ -1,0 +1,1695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sanskrit Duo — Zero-Typing Textbook Trainer</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans Devanagari', system-ui, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .deva {
+      font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+    }
+    .duo-btn {
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
+    }
+    .duo-btn:active:not(:disabled) {
+      transform: translateY(2px);
+    }
+    .duo-card-3d {
+      box-shadow: 0 4px 0 #e2e8f0;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
+    .duo-card-3d:hover:not(:disabled) {
+      border-color: #94a3b8;
+    }
+    .duo-card-3d:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #cbd5e1;
+    }
+    .duo-green-3d {
+      box-shadow: 0 4px 0 #15803d;
+    }
+    .duo-green-3d:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #15803d;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .animate-shake {
+      animation: shake 0.35s ease;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.95); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.2s ease-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Top Header -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <button id="btnBrandHome" class="flex items-center gap-2.5 min-w-0 text-left group">
+        <div class="w-9 h-9 rounded-xl bg-emerald-500 group-hover:bg-emerald-600 text-white flex items-center justify-center font-extrabold text-lg shrink-0 shadow-sm deva transition">
+          सं
+        </div>
+        <div class="min-w-0">
+          <h1 class="font-extrabold text-slate-900 text-base sm:text-lg leading-tight truncate">Sanskrit Duo</h1>
+          <p class="text-xs text-slate-500 truncate" id="headerSubtitle">Zero-Tap Textbook Trainer</p>
+        </div>
+      </button>
+
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs sm:text-sm font-bold" title="Current Streak">
+          <i data-lucide="flame" class="w-4 h-4 text-amber-500"></i>
+          <span id="statStreak">0</span>
+        </div>
+        <div class="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs sm:text-sm font-bold" title="Total XP">
+          <i data-lucide="zap" class="w-4 h-4 text-emerald-500"></i>
+          <span id="statXp">0</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm font-bold" title="Mastered Words">
+          <i data-lucide="award" class="w-4 h-4 text-indigo-500"></i>
+          <span id="statMastered">0</span>
+        </div>
+        <button id="btnOpenSaveModal" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold" title="Save &amp; Restore Backup">
+          <i data-lucide="save" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span class="hidden sm:inline" id="saveBadgeText">Saved</span>
+        </button>
+        <button id="btnSoundToggle" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600" title="Toggle Sound Effects" aria-label="Toggle Sound Effects">
+          <i data-lucide="volume-2" class="w-4 h-4" id="soundIcon"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav id="mainNav" class="max-w-4xl mx-auto px-4 flex gap-1 border-t border-slate-100">
+      <button data-tab="learn" class="nav-tab flex-1 py-2.5 text-sm font-bold border-b-2 border-emerald-500 text-emerald-600 flex items-center justify-center gap-1.5">
+        <i data-lucide="compass" class="w-4 h-4"></i>
+        <span>Learn</span>
+      </button>
+      <button data-tab="bank" class="nav-tab flex-1 py-2.5 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1.5">
+        <i data-lucide="book-open" class="w-4 h-4"></i>
+        <span>Word Bank</span>
+      </button>
+      <button data-tab="import" class="nav-tab flex-1 py-2.5 text-sm font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1.5">
+        <i data-lucide="file-up" class="w-4 h-4"></i>
+        <span>Import PDF</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-5">
+    <!-- WELCOME / PDF UPLOAD START SCREEN -->
+    <section id="viewWelcome" class="max-w-2xl mx-auto space-y-5 animate-pop">
+      <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
+        <div class="text-center space-y-2">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-extrabold">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span>Zero-Typing Sanskrit Practice</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Start with Your Textbook PDF</h2>
+          <p class="text-sm text-slate-500 max-w-md mx-auto">Upload any Sanskrit chapter PDF to auto-generate customized Marathi &amp; English word drills, synonyms, opposites, and Sandhi splits—with a built-in Mistake Loop.</p>
+        </div>
+
+        <!-- Upload PDF Dropzone on Start Screen -->
+        <label for="welcomePdfInput" class="border-2 border-dashed border-emerald-300 bg-emerald-50/60 hover:bg-emerald-50 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition">
+          <div class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center mb-3 shadow-sm">
+            <i data-lucide="file-up" class="w-6 h-6"></i>
+          </div>
+          <span class="font-extrabold text-base text-slate-900" id="welcomePdfTitle">Upload Textbook Chapter PDF</span>
+          <span class="text-xs text-slate-500 mt-1" id="welcomePdfSubtitle">Tap to choose a .pdf file — parsed privately on your device</span>
+          <input id="welcomePdfInput" type="file" accept="application/pdf,.pdf" class="hidden" />
+        </label>
+
+        <div id="welcomeStatus" class="hidden text-xs font-semibold px-3.5 py-2.5 rounded-xl"></div>
+
+        <!-- Custom PDF Preview on Start Screen -->
+        <div id="welcomePreviewBox" class="hidden space-y-3 pt-2 border-t border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div class="flex-1">
+              <label for="welcomeLessonTitle" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Lesson Name</label>
+              <input id="welcomeLessonTitle" type="text" value="My Sanskrit Chapter" class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold deva focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <button id="btnStartWelcomePdf" class="duo-btn duo-green-3d py-2.5 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm shrink-0">
+              Start Customized Lesson
+            </button>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs font-bold" id="welcomeBreakdown"></div>
+        </div>
+
+        <div class="relative flex items-center py-1">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="shrink mx-3 text-xs font-bold uppercase tracking-wider text-slate-400">or jump right in</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <!-- Pre-loaded / Continue Card -->
+        <button id="btnContinueLesson" class="duo-card-3d w-full rounded-2xl border-2 border-slate-200 bg-slate-50/70 hover:bg-white p-4 flex items-center justify-between gap-3 text-left">
+          <div class="min-w-0">
+            <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-600" id="welcomeContinueLabel">Ready-Made Chapter</div>
+            <div class="font-extrabold text-slate-900 text-base deva truncate mt-0.5" id="welcomeContinueTitle">पाठः ७: स्वभावो दुरतिक्रमः (87 Cards)</div>
+            <div class="text-xs text-slate-500 mt-0.5" id="welcomeContinueStats">Marathi &amp; English meanings • Synonyms • Opposites • Sandhis</div>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+            <i data-lucide="arrow-right" class="w-5 h-5"></i>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <!-- TAB 1: LEARN PATH -->
+    <section id="viewLearn" class="hidden space-y-5">
+      <!-- Lesson Selector + Mastery Bar -->
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="min-w-0">
+            <label for="lessonSelect" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Active Lesson</label>
+            <select id="lessonSelect" class="w-full sm:w-auto max-w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 deva"></select>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <div class="text-xs font-semibold text-slate-500">Lesson Mastery</div>
+              <div class="text-sm font-extrabold text-emerald-600" id="lessonMasteryText">0 / 0 Mastered</div>
+            </div>
+            <div class="w-24 h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+              <div id="lessonMasteryBar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Adaptive Action Cards (Mistake Workout + Smart SRS Review) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div class="bg-gradient-to-br from-rose-50 to-orange-50 rounded-2xl border-2 border-rose-200 p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-rose-600">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                Mistake Loop
+              </span>
+              <span id="mistakeBadge" class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-rose-500 text-white">0 due</span>
+            </div>
+            <h2 class="font-extrabold text-slate-900 text-base mt-1.5">Mistake Workout</h2>
+            <p class="text-xs text-slate-600 mt-0.5">Auto-builds a drill from words you missed so you never forget them.</p>
+          </div>
+          <button id="btnMistakeWorkout" class="duo-btn w-full py-2.5 px-4 rounded-xl font-extrabold text-sm bg-rose-500 hover:bg-rose-600 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+            Practice Missed Words
+          </button>
+        </div>
+
+        <div class="bg-gradient-to-br from-indigo-50 to-sky-50 rounded-2xl border-2 border-indigo-200 p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between gap-2">
+              <span class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-indigo-600">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                Spaced Repetition
+              </span>
+              <span id="srsBadge" class="px-2 py-0.5 rounded-full text-xs font-extrabold bg-indigo-500 text-white">Ready</span>
+            </div>
+            <h2 class="font-extrabold text-slate-900 text-base mt-1.5">Smart Mixed Review</h2>
+            <p class="text-xs text-slate-600 mt-0.5">Mixes Synonyms, Opposites &amp; Sandhis prioritizing your weakest cards.</p>
+          </div>
+          <button id="btnSmartReview" class="duo-btn w-full py-2.5 px-4 rounded-xl font-extrabold text-sm bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+            Start Smart Mix (6 Cards)
+          </button>
+        </div>
+      </div>
+
+      <!-- Unit Path -->
+      <div id="unitsContainer" class="space-y-4"></div>
+    </section>
+
+    <!-- TAB 2: WORD BANK -->
+    <section id="viewBank" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div class="flex flex-wrap gap-1.5" id="bankFilters">
+          <button data-filter="all" class="bank-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-900 text-white">All</button>
+          <button data-filter="vocab" class="bank-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">पाठ्यशब्दकोशः (Marathi &amp; English)</button>
+          <button data-filter="synonym" class="bank-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">पर्यायपदानि (Synonyms)</button>
+          <button data-filter="antonym" class="bank-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">विलोमपदानि (Opposites)</button>
+          <button data-filter="sandhi" class="bank-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">सन्धिः (Sandhi)</button>
+          <button data-filter="weak" class="bank-filter px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100">Missed / Weak</button>
+        </div>
+        <button id="btnResetProgress" class="text-xs font-bold text-slate-400 hover:text-rose-600 self-end sm:self-center">Reset Progress</button>
+      </div>
+      <div id="bankList" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+    </section>
+
+    <!-- TAB 3: IMPORT PDF / TEXT -->
+    <section id="viewImport" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+        <div>
+          <h2 class="font-extrabold text-slate-900 text-lg">Create Lesson from Textbook PDF</h2>
+          <p class="text-sm text-slate-500 mt-0.5">Upload any Sanskrit chapter PDF (or paste text). The parser automatically extracts synonyms (<span class="deva">पर्यायपदानि</span>), opposites (<span class="deva">विलोमपदानि</span>), and sandhi splits (<span class="deva">+</span>) into zero-typing quizzes.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label for="pdfFileInput" class="border-2 border-dashed border-emerald-300 bg-emerald-50/50 hover:bg-emerald-50 rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition">
+            <i data-lucide="file-text" class="w-8 h-8 text-emerald-600 mb-2"></i>
+            <span class="font-bold text-sm text-slate-800">Choose Textbook PDF</span>
+            <span class="text-xs text-slate-500 mt-1" id="pdfFileName">Supports Devanagari &amp; Marathi/English PDFs</span>
+            <input id="pdfFileInput" type="file" accept="application/pdf,.pdf" class="hidden" />
+          </label>
+
+          <div class="flex flex-col gap-2">
+            <label for="pasteTextInput" class="text-xs font-bold uppercase tracking-wider text-slate-400">Or Paste Chapter Lines</label>
+            <textarea id="pasteTextInput" rows="4" placeholder="Example:&#10;वृक्षः - तरुः, पादपः&#10;सुखम् - दुःखम्&#10;गृहाणेमाम्   गृहाण + इमाम्   गुण सन्धिः" class="w-full rounded-xl border border-slate-200 p-3 text-xs deva focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+            <button id="btnParseText" class="duo-btn py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold self-end">
+              Extract Cards from Text
+            </button>
+          </div>
+        </div>
+
+        <div id="importStatus" class="hidden text-xs font-semibold px-3 py-2 rounded-xl"></div>
+
+        <!-- Preview Extracted Cards -->
+        <div id="importPreviewBox" class="hidden space-y-3 pt-2 border-t border-slate-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex-1">
+              <label for="newLessonTitle" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Lesson Name</label>
+              <input id="newLessonTitle" type="text" value="New Textbook Lesson" class="w-full sm:w-80 rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold deva focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            </div>
+            <button id="btnSaveImportedLesson" class="duo-btn duo-green-3d py-2.5 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm">
+              Save &amp; Play Lesson
+            </button>
+          </div>
+          <div class="text-xs font-bold text-slate-500" id="importCountLabel">0 cards detected</div>
+          <div id="importPreviewList" class="max-h-64 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 pr-1"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACTIVE QUIZ VIEW -->
+    <section id="viewQuiz" class="hidden max-w-2xl mx-auto">
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[480px]">
+        <!-- Quiz Top Bar -->
+        <div class="px-5 pt-4 pb-3 border-b border-slate-100 flex items-center gap-3">
+          <button id="btnExitQuiz" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700" title="Exit Round" aria-label="Exit Round">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+          <div class="flex-1 h-3.5 bg-slate-100 rounded-full overflow-hidden">
+            <div id="quizProgressBar" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs font-extrabold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+            <span id="quizRoundXp">+0</span>
+          </div>
+        </div>
+
+        <!-- Quiz Body -->
+        <div id="quizBody" class="flex-1 p-5 sm:p-7 flex flex-col justify-between gap-5">
+          <!-- Dynamic question content rendered here -->
+        </div>
+
+        <!-- Quiz Feedback Footer -->
+        <div id="quizFooter" class="hidden px-5 py-4 border-t transition-colors">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <div id="feedbackIcon" class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"></div>
+              <div>
+                <div id="feedbackTitle" class="font-extrabold text-base"></div>
+                <div id="feedbackDetail" class="text-xs sm:text-sm mt-0.5 deva"></div>
+              </div>
+            </div>
+            <button id="btnNextQuestion" class="duo-btn py-2.5 px-6 rounded-xl font-extrabold text-sm text-white shrink-0">
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROUND COMPLETE SUMMARY -->
+    <section id="viewSummary" class="hidden max-w-lg mx-auto">
+      <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 text-center shadow-sm space-y-5 animate-pop">
+        <div class="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+          <i data-lucide="trophy" class="w-9 h-9"></i>
+        </div>
+        <div>
+          <h2 class="text-2xl font-extrabold text-slate-900">Round Complete!</h2>
+          <p class="text-sm text-slate-500 mt-1" id="summarySubtitle">Every missed word was re-queued and conquered.</p>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+            <div class="text-xs font-bold text-amber-600 uppercase">XP Earned</div>
+            <div class="text-xl font-extrabold text-amber-700 mt-0.5" id="summaryXp">+0</div>
+          </div>
+          <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+            <div class="text-xs font-bold text-emerald-600 uppercase">Accuracy</div>
+            <div class="text-xl font-extrabold text-emerald-700 mt-0.5" id="summaryAcc">0%</div>
+          </div>
+          <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-3">
+            <div class="text-xs font-bold text-indigo-600 uppercase">Mastered</div>
+            <div class="text-xl font-extrabold text-indigo-700 mt-0.5" id="summaryMastered">0</div>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-2.5 pt-2">
+          <button id="btnSummaryHome" class="duo-btn flex-1 py-3 px-4 rounded-xl border-2 border-slate-200 font-extrabold text-sm text-slate-700 hover:bg-slate-50">
+            Back to Path
+          </button>
+          <button id="btnSummaryMistakes" class="duo-btn duo-green-3d flex-1 py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm">
+            Next Smart Round
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Save & Backup Modal -->
+  <div id="saveModal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-slate-200 max-w-md w-full p-5 sm:p-6 shadow-xl space-y-4 animate-pop">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+            <i data-lucide="save" class="w-4 h-4"></i>
+          </div>
+          <h2 class="font-extrabold text-slate-900 text-base">Save &amp; Backup Progress</h2>
+        </div>
+        <button id="btnCloseSaveModal" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700" aria-label="Close">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-500">Your XP, streaks, mistake history, and imported lessons auto-save in this browser. Download a backup file to keep your progress safe across devices or share custom lessons.</p>
+
+      <div class="bg-slate-50 rounded-2xl border border-slate-200 p-3.5 text-xs space-y-1">
+        <div class="flex justify-between font-bold text-slate-700">
+          <span>Auto-save status:</span>
+          <span class="text-emerald-600" id="modalSaveStatus">Active</span>
+        </div>
+        <div class="flex justify-between text-slate-500">
+          <span>Saved lessons:</span>
+          <span class="font-bold text-slate-700" id="modalLessonCount">1</span>
+        </div>
+        <div class="flex justify-between text-slate-500">
+          <span>Tracked words:</span>
+          <span class="font-bold text-slate-700" id="modalTrackedCount">0</span>
+        </div>
+      </div>
+
+      <div class="space-y-2.5">
+        <button id="btnDownloadBackup" class="duo-btn duo-green-3d w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm flex items-center justify-center gap-2">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>Download Backup (.json)</span>
+        </button>
+
+        <label for="restoreBackupInput" class="duo-btn w-full py-2.5 px-4 rounded-xl border-2 border-slate-200 hover:bg-slate-50 text-slate-700 font-extrabold text-sm flex items-center justify-center gap-2 cursor-pointer">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span>Restore from Backup (.json)</span>
+          <input id="restoreBackupInput" type="file" accept="application/json,.json" class="hidden" />
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast" class="fixed bottom-4 right-4 z-50 hidden bg-slate-900 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg"></div>
+
+  <script>
+    // =========================================================
+    // 1. GROUNDED LESSON 7 DATA (स्वभावो दुरतिक्रमः)
+    // =========================================================
+    const LESSON_7_DATA = {
+      id: "lesson_7_svabhavo",
+      title: "पाठः ७: स्वभावो दुरतिक्रमः",
+      cards: [
+        // Lesson Vocabulary (पाठ्यशब्दकोशः - Marathi & English + Sentence - 24)
+        { id: "voc_1", type: "vocab", prompt: "तीरे", answer: "तीरावर / काठावर • on the bank", hook: "Sentence: भागीरथ्याः तीरे आसीत् एकमाश्रमस्थानम् ।" },
+        { id: "voc_2", type: "vocab", prompt: "मुनिश्रेष्ठः", answer: "श्रेष्ठ मुनी • best of sages", hook: "Sentence: तत्र याज्ञवल्क्यो मुनिश्रेष्ठः अवर्तत ।" },
+        { id: "voc_3", type: "vocab", prompt: "न्यग्रोधवृक्षः", answer: "वडाचे झाड • banyan tree", hook: "Sentence: सः न्यग्रोधवृक्षस्य छायायाम् उपविष्टः ।" },
+        { id: "voc_4", type: "vocab", prompt: "उपविष्टः", answer: "बसलेला • seated / sitting", hook: "Sentence: न्यग्रोधवृक्षस्य छायायाम् उपविष्टः ।" },
+        { id: "voc_5", type: "vocab", prompt: "श्येनः", answer: "ससाणा • hawk / falcon", hook: "Sentence: श्येनस्य मुखात् परिभ्रष्टा मूषिका ।" },
+        { id: "voc_6", type: "vocab", prompt: "परिभ्रष्टा", answer: "खाली पडलेली • fallen down / slipped", hook: "Sentence: श्येनस्य मुखात् परिभ्रष्टा काचन मूषिका ।" },
+        { id: "voc_7", type: "vocab", prompt: "मूषिका", answer: "उंदरी • female mouse", hook: "Sentence: काचन मूषिका तस्याङ्केऽपतत् ।" },
+        { id: "voc_8", type: "vocab", prompt: "अङ्कः", answer: "मांडी • lap", hook: "Sentence: मूषिका तस्य अङ्के अपतत् ।" },
+        { id: "voc_9", type: "vocab", prompt: "तपोबलम्", answer: "तपोबल / तपाचे सामर्थ्य • power of penance", hook: "Sentence: सः तां तपोबलेन कन्यकां कृत्वा..." },
+        { id: "voc_10", type: "vocab", prompt: "दुहिता", answer: "मुलगी • daughter", hook: "Sentence: प्रिये! गृहाणेमां दुहितरम् ।" },
+        { id: "voc_11", type: "vocab", prompt: "प्रयत्नेन", answer: "काळजीपूर्वक / प्रयत्नाने • with care / effort", hook: "Sentence: इमां दुहितरं प्रयत्नेन च पालय ।" },
+        { id: "voc_12", type: "vocab", prompt: "पालय", answer: "पालनपोषण कर • nurture / protect", hook: "Sentence: प्रयत्नेन च पालय ।" },
+        { id: "voc_13", type: "vocab", prompt: "विवाहयोग्या", answer: "विवाहयोग्य • of marriageable age", hook: "Sentence: विवाहयोग्यां तां दृष्ट्वा कान्ता भर्तारमभाषत ।" },
+        { id: "voc_14", type: "vocab", prompt: "निश्चिन्तः", answer: "निश्चिंत / काळजीमुक्त • worry-free", hook: "Sentence: योग्याय वराय समर्प्य निश्चिन्तो भव ।" },
+        { id: "voc_15", type: "vocab", prompt: "सदृशः", answer: "सारखा / योग्य • suitable / similar", hook: "Sentence: अहमेनां सदृशाय वराय प्रयच्छामि ।" },
+        { id: "voc_16", type: "vocab", prompt: "आह्वयत्", answer: "बोलावले • summoned / called", hook: "Sentence: ततः सः सवितारमाह्वयत् ।" },
+        { id: "voc_17", type: "vocab", prompt: "तत्क्षणमेव", answer: "त्याच क्षणी • at that very moment", hook: "Sentence: मन्त्रप्रभावात् तत्क्षणमेव सविता समागत्य..." },
+        { id: "voc_18", type: "vocab", prompt: "रोचते", answer: "आवडतो • pleases / likes", hook: "Sentence: किं तुभ्यमयं रोचते त्रैलोक्यदीपकः ?" },
+        { id: "voc_19", type: "vocab", prompt: "अतिदहनम्", answer: "अतिशय उष्ण • excessive heat / burning", hook: "Sentence: अतिदहनमेनम् नाभिलषामि ।" },
+        { id: "voc_20", type: "vocab", prompt: "अतिचपलः", answer: "अतिशय चंचल • very restless / fickle", hook: "Sentence: मेघेन प्रेषितं वायुम् अतिचपलः इति अनिन्दत् ।" },
+        { id: "voc_21", type: "vocab", prompt: "अधोमुखी", answer: "खाली मान घालून • looking down (shyly)", hook: "Sentence: कन्यका तं स्वसदृशममन्यत अधोमुखी चाजायत ।" },
+        { id: "voc_22", type: "vocab", prompt: "उत्सृज्य", answer: "नाकारून / सोडून • having abandoned", hook: "Sentence: सूर्यं भर्तारमुत्सृज्य पर्जन्यं मारुतं गिरिम् ।" },
+        { id: "voc_23", type: "vocab", prompt: "स्वभावः", answer: "स्वभाव / मूळ प्रवृत्ती • innate nature", hook: "Sentence: स्वजातिं मूषिका प्राप्ता स्वभावो दुरतिक्रमः ।" },
+        { id: "voc_24", type: "vocab", prompt: "दुरतिक्रमः", answer: "मात करण्यास कठीण • hard to overcome", hook: "Sentence: स्वभावो दुरतिक्रमः ।" },
+
+        // Synonyms (पर्यायपदानि - 16)
+        { id: "syn_1", type: "synonym", prompt: "तीरे", answer: "तटे", alts: ["तटे"], meaning: "on the bank / shore", hook: "Both mean riverbank (भागीरथ्याः तीरे)" },
+        { id: "syn_2", type: "synonym", prompt: "आश्रमः", answer: "मुनिनिवासः", alts: ["मुनिनिवासः"], meaning: "hermitage", hook: "मुनि (sage) + निवासः (home)" },
+        { id: "syn_3", type: "synonym", prompt: "मुनिः", answer: "ऋषिः", alts: ["ऋषिः", "तपस्वी"], meaning: "sage", hook: "ऋषिः / तपस्वी = ascetic sage" },
+        { id: "syn_4", type: "synonym", prompt: "न्यग्रोधः", answer: "वटवृक्षः", alts: ["वटवृक्षः"], meaning: "banyan tree", hook: "वटवृक्षः = banyan tree" },
+        { id: "syn_5", type: "synonym", prompt: "वृक्षः", answer: "तरुः", alts: ["तरुः", "पादपः"], meaning: "tree", hook: "पादपः = drinks with its feet (roots)" },
+        { id: "syn_6", type: "synonym", prompt: "कन्या", answer: "दुहिता", alts: ["दुहिता", "पुत्री"], meaning: "daughter / girl", hook: "दुहिता / पुत्री = daughter" },
+        { id: "syn_7", type: "synonym", prompt: "पत्नी", answer: "भार्या", alts: ["भार्या", "जाया"], meaning: "wife", hook: "भार्या / जाया = wife" },
+        { id: "syn_8", type: "synonym", prompt: "भर्ता", answer: "पतिः", alts: ["पतिः", "स्वामी"], meaning: "husband", hook: "पतिः / स्वामी = husband / lord" },
+        { id: "syn_9", type: "synonym", prompt: "मेघः", answer: "जलदः", alts: ["जलदः", "घनः"], meaning: "cloud", hook: "जल + द = water-giver; घनः = dense cloud" },
+        { id: "syn_10", type: "synonym", prompt: "सूर्यः", answer: "भास्करः", alts: ["रविः", "आदित्यः", "भास्करः"], meaning: "sun", hook: "भास्करः = light-maker; रविः, आदित्यः" },
+        { id: "syn_11", type: "synonym", prompt: "वायुः", answer: "पवनः", alts: ["पवनः", "अनिलः"], meaning: "wind", hook: "पवनः / अनिलः = wind (अनिल vs अनल fire!)" },
+        { id: "syn_12", type: "synonym", prompt: "पर्वतः", answer: "गिरिः", alts: ["गिरिः", "शैलः"], meaning: "mountain", hook: "गिरिः / शैलः = mountain" },
+        { id: "syn_13", type: "synonym", prompt: "गिरिवरः", answer: "पर्वतराजः", alts: ["पर्वतराजः"], meaning: "king of mountains", hook: "गिरि + वर (best) = पर्वतराजः" },
+        { id: "syn_14", type: "synonym", prompt: "मुखम्", answer: "आननम्", alts: ["आननम्", "वदनम्"], meaning: "face / mouth", hook: "आननम् / वदनम् = face" },
+        { id: "syn_15", type: "synonym", prompt: "जलम्", answer: "वारि", alts: ["वारि", "तोयम्"], meaning: "water", hook: "वारि / तोयम् = water" },
+        { id: "syn_16", type: "synonym", prompt: "विवाहः", answer: "परिणयः", alts: ["परिणयः", "पाणिग्रहणम्"], meaning: "marriage", hook: "पाणि (hand) + ग्रहणम् (taking) = marriage" },
+
+        // Antonyms (विलोमपदानि - 20)
+        { id: "ant_1", type: "antonym", prompt: "श्रेष्ठः", answer: "कनिष्ठः", meaning: "best / eldest ↔ youngest / lowest", hook: "श्रेष्ठ (best) ↔ कनिष्ठ (junior/least)" },
+        { id: "ant_2", type: "antonym", prompt: "छाया", answer: "आतपः", meaning: "shade ↔ sunlight / heat", hook: "छाया (shade) ↔ आतपः (sun-heat)" },
+        { id: "ant_3", type: "antonym", prompt: "योग्यः", answer: "अयोग्यः", meaning: "worthy ↔ unworthy", hook: "अ- prefix negates योग्यः" },
+        { id: "ant_4", type: "antonym", prompt: "सदृशः", answer: "असदृशः", meaning: "similar ↔ dissimilar", hook: "अ- prefix negates सदृशः" },
+        { id: "ant_5", type: "antonym", prompt: "अभ्यधिकः", answer: "न्यूनः", meaning: "more / greater ↔ less", hook: "अधिक (more) ↔ न्यून (less)" },
+        { id: "ant_6", type: "antonym", prompt: "कृष्णः", answer: "श्वेतः", meaning: "black / dark ↔ white", hook: "कृष्ण (dark) ↔ श्वेत (white)" },
+        { id: "ant_7", type: "antonym", prompt: "कठोरः", answer: "कोमलः", meaning: "hard ↔ soft", hook: "कठोर (hard) ↔ कोमल (soft)" },
+        { id: "ant_8", type: "antonym", prompt: "जडः", answer: "चेतनः", meaning: "inanimate / dull ↔ conscious / living", hook: "जड (inert) ↔ चेतन (living/conscious)" },
+        { id: "ant_9", type: "antonym", prompt: "चपलः", answer: "स्थिरः", meaning: "restless ↔ steady", hook: "चपल (flickering) ↔ स्थिर (still)" },
+        { id: "ant_10", type: "antonym", prompt: "दहनम्", answer: "शीतलता", meaning: "burning / heat ↔ coolness", hook: "दहन (burning) ↔ शीतलता (coolness)" },
+        { id: "ant_11", type: "antonym", prompt: "इच्छति", answer: "अनिच्छति", meaning: "desires ↔ does not desire", hook: "अन्- prefix before vowel इ" },
+        { id: "ant_12", type: "antonym", prompt: "आगच्छति", answer: "गच्छति", meaning: "comes ↔ goes", hook: "आ + गच्छति (comes) ↔ गच्छति (goes)" },
+        { id: "ant_13", type: "antonym", prompt: "गृह्णाति", answer: "त्यजति", meaning: "takes / accepts ↔ abandons", hook: "त्यजति = gives up (like त्याग)" },
+        { id: "ant_14", type: "antonym", prompt: "उन्नतः", answer: "अवनतः", meaning: "high / raised ↔ bowed / low", hook: "उत् (up) ↔ अव (down)" },
+        { id: "ant_15", type: "antonym", prompt: "सुखम्", answer: "दुःखम्", meaning: "happiness ↔ sorrow", hook: "सु (good) ↔ दुः (hard/bad)" },
+        { id: "ant_16", type: "antonym", prompt: "प्रकाशः", answer: "अन्धकारः", meaning: "light ↔ darkness", hook: "प्रकाश (light) ↔ अन्धकार (darkness)" },
+        { id: "ant_17", type: "antonym", prompt: "समीपम्", answer: "दूरम्", meaning: "near ↔ far", hook: "समीप (near) ↔ दूर (far)" },
+        { id: "ant_18", type: "antonym", prompt: "पूर्वम्", answer: "पश्चात्", meaning: "before ↔ after", hook: "पूर्वम् (before) ↔ पश्चात् (after)" },
+        { id: "ant_19", type: "antonym", prompt: "एकः", answer: "अनेकः", meaning: "one ↔ many", hook: "एक (one) ↔ अन् + एक (many)" },
+        { id: "ant_20", type: "antonym", prompt: "लघुः", answer: "गुरुः", meaning: "light / small ↔ heavy / great", hook: "लघु (small/light) ↔ गुरु (heavy/great)" },
+
+        // Sandhis (सन्धिः - 27 unique)
+        { id: "snd_1", type: "sandhi", prompt: "एकमाश्रमस्थानम्", parts: ["एकम्", "आश्रमस्थानम्"], answer: "एकम् + आश्रमस्थानम्", rule: "व्यञ्जन / संयोगः", hook: "म् + आ = मा" },
+        { id: "snd_2", type: "sandhi", prompt: "याज्ञवल्क्यो मुनिश्रेष्ठः", parts: ["याज्ञवल्क्यः", "मुनिश्रेष्ठः"], answer: "याज्ञवल्क्यः + मुनिश्रेष्ठः", rule: "विसर्ग सन्धिः", hook: "अः + मृदु व्यञ्जन (म) → ओ" },
+        { id: "snd_3", type: "sandhi", prompt: "छायायामुपविष्टः", parts: ["छायायाम्", "उपविष्टः"], answer: "छायायाम् + उपविष्टः", rule: "व्यञ्जन / संयोगः", hook: "म् + उ = मु" },
+        { id: "snd_4", type: "sandhi", prompt: "तस्याङ्केऽपतत्", parts: ["तस्य", "अङ्के", "अपतत्"], answer: "तस्य + अङ्के + अपतत्", rule: "सवर्णदीर्घ + पूर्वरूप", hook: "अ + अ = आ; ए + अ = एऽ" },
+        { id: "snd_5", type: "sandhi", prompt: "गृहाणेमाम्", parts: ["गृहाण", "इमाम्"], answer: "गृहाण + इमाम्", rule: "गुण सन्धिः", hook: "अ + इ = ए" },
+        { id: "snd_6", type: "sandhi", prompt: "साधूक्तम्", parts: ["साधु", "उक्तम्"], answer: "साधु + उक्तम्", rule: "सवर्णदीर्घ सन्धिः", hook: "उ + उ = ऊ" },
+        { id: "snd_7", type: "sandhi", prompt: "अहमेनाम्", parts: ["अहम्", "एनाम्"], answer: "अहम् + एनाम्", rule: "व्यञ्जन / संयोगः", hook: "म् + ए = मे" },
+        { id: "snd_8", type: "sandhi", prompt: "तत्क्षणमेव", parts: ["तत्क्षणम्", "एव"], answer: "तत्क्षणम् + एव", rule: "व्यञ्जन / संयोगः", hook: "म् + ए = मे" },
+        { id: "snd_9", type: "sandhi", prompt: "ममापि", parts: ["मम", "अपि"], answer: "मम + अपि", rule: "सवर्णदीर्घ सन्धिः", hook: "अ + अ = आ" },
+        { id: "snd_10", type: "sandhi", prompt: "तद्वचनम्", parts: ["तत्", "वचनम्"], answer: "तत् + वचनम्", rule: "व्यञ्जन सन्धिः (जश्त्व)", hook: "त् + व = द्व" },
+        { id: "snd_11", type: "sandhi", prompt: "तद्वचनमाकर्ण्य", parts: ["तद्वचनम्", "आकर्ण्य"], answer: "तद्वचनम् + आकर्ण्य", rule: "व्यञ्जन / संयोगः", hook: "म् + आ = मा" },
+        { id: "snd_12", type: "sandhi", prompt: "मेघमाह्वयत्", parts: ["मेघम्", "आह्वयत्"], answer: "मेघम् + आह्वयत्", rule: "व्यञ्जन / संयोगः", hook: "म् + आ = मा" },
+        { id: "snd_13", type: "sandhi", prompt: "मुनिराहूय", parts: ["मुनिः", "आहूय"], answer: "मुनिः + आहूय", rule: "विसर्ग सन्धिः", hook: "इः + आ → इरा" },
+        { id: "snd_14", type: "sandhi", prompt: "तामदर्शयत्", parts: ["ताम्", "अदर्शयत्"], answer: "ताम् + अदर्शयत्", rule: "व्यञ्जन / संयोगः", hook: "म् + अ = म" },
+        { id: "snd_15", type: "sandhi", prompt: "मनस्यचिन्तयत्", parts: ["मनसि", "अचिन्तयत्"], answer: "मनसि + अचिन्तयत्", rule: "यण् सन्धिः", hook: "इ + अ = य" },
+        { id: "snd_16", type: "sandhi", prompt: "भर्तारमभाषत", parts: ["भर्तारम्", "अभाषत"], answer: "भर्तारम् + अभाषत", rule: "व्यञ्जन / संयोगः", hook: "म् + अ = म" },
+        { id: "snd_17", type: "sandhi", prompt: "किमर्थमाहूतः", parts: ["किमर्थम्", "आहूतः"], answer: "किमर्थम् + आहूतः", rule: "व्यञ्जन / संयोगः", hook: "म् + आ = मा" },
+        { id: "snd_18", type: "sandhi", prompt: "परिणयैनाम्", parts: ["परिणय", "एनाम्"], answer: "परिणय + एनाम्", rule: "वृद्धि सन्धिः", hook: "अ + ए = ऐ" },
+        { id: "snd_19", type: "sandhi", prompt: "तुभ्यमयम्", parts: ["तुभ्यम्", "अयम्"], answer: "तुभ्यम् + अयम्", rule: "व्यञ्जन / संयोगः", hook: "म् + अ = म" },
+        { id: "snd_20", type: "sandhi", prompt: "नाभिलषामि", parts: ["न", "अभिलषामि"], answer: "न + अभिलषामि", rule: "सवर्णदीर्घ सन्धिः", hook: "अ + अ = आ" },
+        { id: "snd_21", type: "sandhi", prompt: "भास्करमभाषत", parts: ["भास्करम्", "अभाषत"], answer: "भास्करम् + अभाषत", rule: "व्यञ्जन / संयोगः", hook: "म् + अ = म" },
+        { id: "snd_22", type: "sandhi", prompt: "ममाप्याच्छादकः", parts: ["मम", "अपि", "आच्छादकः"], answer: "मम + अपि + आच्छादकः", rule: "सवर्णदीर्घ + यण्", hook: "अ + अ = आ; इ + आ = या" },
+        { id: "snd_23", type: "sandhi", prompt: "इत्यनिन्दत्", parts: ["इति", "अनिन्दत्"], answer: "इति + अनिन्दत्", rule: "यण् सन्धिः", hook: "इ + अ = य" },
+        { id: "snd_24", type: "sandhi", prompt: "स्तुतिमकरोत्", parts: ["स्तुतिम्", "अकरोत्"], answer: "स्तुतिम् + अकरोत्", rule: "व्यञ्जन / संयोगः", hook: "म् + अ = म" },
+        { id: "snd_25", type: "sandhi", prompt: "मूषकमाहूय", parts: ["मूषकम्", "आहूय"], answer: "मूषकम् + आहूय", rule: "व्यञ्जन / संयोगः", hook: "म् + आ = मा" },
+        { id: "snd_26", type: "sandhi", prompt: "स्वसदृशममन्यत", parts: ["स्वसदृशम्", "अमन्यत"], answer: "स्वसदृशम् + अमन्यत", rule: "व्यञ्जन / संयोगः", hook: "म् + अ = म" },
+        { id: "snd_27", type: "sandhi", prompt: "चाजायत", parts: ["च", "अजायत"], answer: "च + अजायत", rule: "सवर्णदीर्घ सन्धिः", hook: "अ + अ = आ" }
+      ]
+    };
+
+    // =========================================================
+    // 2. STATE & STORAGE
+    // =========================================================
+    const STORAGE_KEY = "sanskrit_duo_state_v1";
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.lessons) && parsed.lessons.length > 0) {
+            const l7 = parsed.lessons.find(l => l.id === LESSON_7_DATA.id);
+            if (l7) {
+              const existingIds = new Set(l7.cards.map(c => c.id));
+              const missing = LESSON_7_DATA.cards.filter(c => !existingIds.has(c.id));
+              if (missing.length > 0) l7.cards = [...missing, ...l7.cards];
+            }
+            return parsed;
+          }
+        }
+      } catch (e) {}
+      return {
+        xp: 0,
+        streak: 0,
+        soundOn: true,
+        activeLessonId: LESSON_7_DATA.id,
+        lessons: [LESSON_7_DATA],
+        progress: {} // cardId -> { mastery: 0..3, mistakes: 0, lastSeen: ts }
+      };
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        const badge = document.getElementById("saveBadgeText");
+        if (badge) {
+          badge.textContent = "Saved ✓";
+          clearTimeout(badge._t);
+          badge._t = setTimeout(() => { badge.textContent = "Saved"; }, 1400);
+        }
+      } catch (e) {
+        const st = document.getElementById("modalSaveStatus");
+        if (st) st.textContent = "Use Download Backup";
+      }
+    }
+
+    let state = loadState();
+    let currentTab = "learn";
+    let bankFilter = "all";
+    let importedPreviewCards = [];
+
+    // Quiz runtime state
+    let quiz = {
+      active: false,
+      title: "",
+      queue: [],        // array of { card, mode }
+      currentIdx: 0,
+      roundXp: 0,
+      totalAttempts: 0,
+      correctAttempts: 0,
+      answered: false,
+      matchState: null, // for tap-pair mode
+      chipState: null,  // for sandhi-builder mode
+      retryCounts: {}   // cardId -> retries in current round
+    };
+    let lastSmartMixIds = new Set();
+
+    // =========================================================
+    // 3. AUDIO (Web Audio API Chimes - Zero External Files)
+    // =========================================================
+    let audioCtx = null;
+    function playTone(type) {
+      if (!state.soundOn) return;
+      try {
+        if (!audioCtx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (!AC) return;
+          audioCtx = new AC();
+        }
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === "correct") {
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.12);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+          osc.start(now);
+          osc.stop(now + 0.25);
+        } else if (type === "wrong") {
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(240, now);
+          osc.frequency.exponentialRampToValueAtTime(160, now + 0.18);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+          osc.start(now);
+          osc.stop(now + 0.22);
+        } else if (type === "win") {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = "sine";
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.frequency.setValueAtTime(freq, now + i * 0.08);
+            g.gain.setValueAtTime(0.12, now + i * 0.08);
+            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.22);
+            o.start(now + i * 0.08);
+            o.stop(now + i * 0.08 + 0.22);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // =========================================================
+    // 4. HELPERS
+    // =========================================================
+    function getActiveLesson() {
+      return state.lessons.find(l => l.id === state.activeLessonId) || state.lessons[0];
+    }
+
+    function getCardProgress(cardId) {
+      return state.progress[cardId] || { mastery: 0, mistakes: 0, lastSeen: 0 };
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.classList.remove("hidden");
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.add("hidden"), 2800);
+    }
+
+    function typeLabel(type) {
+      if (type === "vocab") return "शब्दार्थः (Marathi & English)";
+      if (type === "synonym") return "पर्यायपदम् (Synonym)";
+      if (type === "antonym") return "विलोमपदम् (Opposite)";
+      return "सन्धिः (Sandhi)";
+    }
+
+    function typeColor(type) {
+      if (type === "vocab") return "bg-sky-100 text-sky-700";
+      if (type === "synonym") return "bg-emerald-100 text-emerald-700";
+      if (type === "antonym") return "bg-amber-100 text-amber-800";
+      return "bg-indigo-100 text-indigo-700";
+    }
+
+    // =========================================================
+    // 5. RENDER HEADER & NAVIGATION
+    // =========================================================
+    function renderStats() {
+      const lesson = getActiveLesson();
+      const totalCards = lesson.cards.length;
+      const masteredInLesson = lesson.cards.filter(c => getCardProgress(c.id).mastery >= 3).length;
+      const totalMastered = Object.values(state.progress).filter(p => p.mastery >= 3).length;
+      const dueMistakes = lesson.cards.filter(c => getCardProgress(c.id).mistakes > 0 && getCardProgress(c.id).mastery < 3).length;
+
+      document.getElementById("statStreak").textContent = String(state.streak);
+      document.getElementById("statXp").textContent = String(state.xp);
+      document.getElementById("statMastered").textContent = String(totalMastered);
+
+      const pct = totalCards > 0 ? Math.round((masteredInLesson / totalCards) * 100) : 0;
+      document.getElementById("lessonMasteryText").textContent = `${masteredInLesson} / ${totalCards} Mastered`;
+      document.getElementById("lessonMasteryBar").style.width = `${pct}%`;
+
+      const badge = document.getElementById("mistakeBadge");
+      const btnMistake = document.getElementById("btnMistakeWorkout");
+      badge.textContent = `${dueMistakes} due`;
+      btnMistake.disabled = dueMistakes === 0;
+      btnMistake.textContent = dueMistakes > 0 ? `Practice ${dueMistakes} Missed Word${dueMistakes > 1 ? "s" : ""}` : "No Missed Words Yet!";
+
+      const soundIcon = document.getElementById("soundIcon");
+      soundIcon.setAttribute("data-lucide", state.soundOn ? "volume-2" : "volume-x");
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function showWelcomeScreen() {
+      document.getElementById("viewWelcome").classList.remove("hidden");
+      document.getElementById("viewLearn").classList.add("hidden");
+      document.getElementById("viewBank").classList.add("hidden");
+      document.getElementById("viewImport").classList.add("hidden");
+      document.getElementById("viewQuiz").classList.add("hidden");
+      document.getElementById("viewSummary").classList.add("hidden");
+      document.getElementById("mainNav").classList.add("hidden");
+
+      const lesson = getActiveLesson();
+      const mastered = lesson.cards.filter(c => getCardProgress(c.id).mastery >= 3).length;
+      document.getElementById("welcomeContinueLabel").textContent = state.xp > 0 ? `Continue (${state.xp} XP)` : "Ready-Made Chapter";
+      document.getElementById("welcomeContinueTitle").textContent = `${lesson.title} (${lesson.cards.length} Cards)`;
+      document.getElementById("welcomeContinueStats").textContent = state.xp > 0
+        ? `${mastered}/${lesson.cards.length} mastered • Pick up right where you left off`
+        : "Marathi & English meanings • Synonyms • Opposites • Sandhis";
+      renderStats();
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById("viewWelcome").classList.add("hidden");
+      document.getElementById("viewLearn").classList.toggle("hidden", tab !== "learn");
+      document.getElementById("viewBank").classList.toggle("hidden", tab !== "bank");
+      document.getElementById("viewImport").classList.toggle("hidden", tab !== "import");
+      document.getElementById("viewQuiz").classList.add("hidden");
+      document.getElementById("viewSummary").classList.add("hidden");
+      document.getElementById("mainNav").classList.remove("hidden");
+
+      document.querySelectorAll(".nav-tab").forEach(btn => {
+        const active = btn.dataset.tab === tab;
+        btn.classList.toggle("border-emerald-500", active);
+        btn.classList.toggle("text-emerald-600", active);
+        btn.classList.toggle("border-transparent", !active);
+        btn.classList.toggle("text-slate-500", !active);
+      });
+
+      if (tab === "learn") renderLearnView();
+      if (tab === "bank") renderBankView();
+    }
+
+    // =========================================================
+    // 6. LEARN PATH VIEW
+    // =========================================================
+    function renderLearnView() {
+      const sel = document.getElementById("lessonSelect");
+      sel.innerHTML = state.lessons.map(l => `<option value="${l.id}" ${l.id === state.activeLessonId ? "selected" : ""}>${l.title} (${l.cards.length})</option>`).join("");
+
+      const lesson = getActiveLesson();
+      const groups = [
+        { type: "vocab", title: "Unit 1: पाठ्यशब्दकोशः (Lesson Words — Marathi & English)", desc: "Tap Marathi & English meanings + example sentences from the story", color: "sky" },
+        { type: "synonym", title: "Unit 2: पर्यायपदानि (Synonyms)", desc: "Tap matching Sanskrit synonyms", color: "emerald" },
+        { type: "antonym", title: "Unit 3: विलोमपदानि (Opposites)", desc: "Tap opposite pairs & meanings", color: "amber" },
+        { type: "sandhi", title: "Unit 4: सन्धिः (Sandhi Splits)", desc: "Tap word chips to split Sandhis", color: "indigo" }
+      ];
+
+      const container = document.getElementById("unitsContainer");
+      container.innerHTML = "";
+
+      groups.forEach(g => {
+        const cards = lesson.cards.filter(c => c.type === g.type);
+        if (cards.length === 0) return;
+
+        // Chunk into 5-card rounds
+        const chunkSize = 5;
+        const rounds = [];
+        for (let i = 0; i < cards.length; i += chunkSize) {
+          rounds.push(cards.slice(i, i + chunkSize));
+        }
+
+        const masteredCount = cards.filter(c => getCardProgress(c.id).mastery >= 3).length;
+        const unitEl = document.createElement("div");
+        unitEl.className = "bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3";
+        unitEl.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <h3 class="font-extrabold text-slate-900 text-base deva">${g.title}</h3>
+              <p class="text-xs text-slate-500">${g.desc}</p>
+            </div>
+            <span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">${masteredCount}/${cards.length} Mastered</span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+        `;
+
+        const grid = unitEl.querySelector(".grid");
+        rounds.forEach((chunk, idx) => {
+          const chunkMastered = chunk.filter(c => getCardProgress(c.id).mastery >= 3).length;
+          const chunkMistakes = chunk.filter(c => getCardProgress(c.id).mistakes > 0 && getCardProgress(c.id).mastery < 3).length;
+          const isDone = chunkMastered === chunk.length;
+
+          const btn = document.createElement("button");
+          btn.className = `duo-card-3d rounded-2xl border-2 p-3 text-left flex flex-col justify-between gap-2 ${
+            isDone
+              ? "border-emerald-300 bg-emerald-50/70"
+              : chunkMistakes > 0
+              ? "border-rose-200 bg-rose-50/40"
+              : "border-slate-200 bg-white"
+          }`;
+          btn.innerHTML = `
+            <div class="flex items-center justify-between w-full">
+              <span class="text-xs font-extrabold ${isDone ? "text-emerald-700" : "text-slate-700"}">Round ${idx + 1}</span>
+              ${isDone ? '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i>' : chunkMistakes > 0 ? '<i data-lucide="alert-circle" class="w-4 h-4 text-rose-500"></i>' : '<i data-lucide="play-circle" class="w-4 h-4 text-slate-400"></i>'}
+            </div>
+            <div class="text-xs font-semibold text-slate-500 deva truncate w-full">${chunk[0].prompt}…</div>
+            <div class="text-[11px] font-bold ${isDone ? "text-emerald-600" : "text-slate-400"}">${chunkMastered}/${chunk.length} mastered</div>
+          `;
+          btn.addEventListener("click", () => startRound(`${g.title.split(":")[0]} • Round ${idx + 1}`, chunk));
+          grid.appendChild(btn);
+        });
+
+        container.appendChild(unitEl);
+      });
+
+      renderStats();
+    }
+
+    // =========================================================
+    // 7. WORD BANK VIEW
+    // =========================================================
+    function renderBankView() {
+      const lesson = getActiveLesson();
+      const listEl = document.getElementById("bankList");
+
+      document.querySelectorAll(".bank-filter").forEach(btn => {
+        const active = btn.dataset.filter === bankFilter;
+        if (btn.dataset.filter === "weak") {
+          btn.className = `bank-filter px-3 py-1.5 rounded-xl text-xs font-bold ${active ? "bg-rose-600 text-white" : "bg-rose-50 text-rose-600 hover:bg-rose-100"}`;
+        } else {
+          btn.className = `bank-filter px-3 py-1.5 rounded-xl text-xs font-bold ${active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`;
+        }
+      });
+
+      const filtered = lesson.cards.filter(c => {
+        if (bankFilter === "all") return true;
+        if (bankFilter === "weak") {
+          const p = getCardProgress(c.id);
+          return p.mistakes > 0 && p.mastery < 3;
+        }
+        return c.type === bankFilter;
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="col-span-full bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No cards match this filter yet.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(c => {
+        const p = getCardProgress(c.id);
+        const stars = "★".repeat(p.mastery) + "☆".repeat(3 - p.mastery);
+        return `
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-col justify-between gap-2">
+            <div class="flex items-start justify-between gap-2">
+              <span class="px-2 py-0.5 rounded-lg text-[11px] font-bold ${typeColor(c.type)}">${typeLabel(c.type)}</span>
+              <div class="flex items-center gap-2">
+                ${p.mistakes > 0 ? `<span class="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">${p.mistakes} miss${p.mistakes > 1 ? "es" : ""}</span>` : ""}
+                <span class="text-xs font-bold text-amber-500" title="Mastery ${p.mastery}/3">${stars}</span>
+              </div>
+            </div>
+            <div class="deva">
+              <div class="text-base font-extrabold text-slate-900">${c.prompt}</div>
+              <div class="text-sm font-bold text-emerald-700 mt-0.5">${c.answer}</div>
+            </div>
+            <div class="text-xs text-slate-500">${c.rule ? `${c.rule} • ` : ""}${c.hook || c.meaning || ""}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // =========================================================
+    // 8. ZERO-TYPING QUIZ ENGINE (MCQ, PAIR MATCH, SANDHI CHIPS)
+    // =========================================================
+    function startRound(title, cards) {
+      if (!cards || cards.length === 0) return;
+      quiz = {
+        active: true,
+        title,
+        queue: [],
+        currentIdx: 0,
+        roundXp: 0,
+        totalAttempts: 0,
+        correctAttempts: 0,
+        answered: false,
+        matchState: null,
+        chipState: null,
+        retryCounts: {}
+      };
+
+      // Build varied tap-only questions
+      const synAnt = cards.filter(c => c.type === "vocab" || c.type === "synonym" || c.type === "antonym");
+      const sandhis = cards.filter(c => c.type === "sandhi");
+
+      // Add a Tap Pair Match card if we have >= 3 syn/ant cards
+      if (synAnt.length >= 3) {
+        quiz.queue.push({ type: "match", cards: shuffle(synAnt).slice(0, 4), card: synAnt[0] });
+      }
+
+      // Add individual MCQ or Sandhi Chip Builder cards
+      shuffle(cards).forEach((card, idx) => {
+        if (card.type === "sandhi" && Array.isArray(card.parts) && card.parts.length >= 2) {
+          quiz.queue.push({ type: idx % 2 === 0 ? "sandhi-chips" : "mcq", card });
+        } else {
+          quiz.queue.push({ type: "mcq", card });
+        }
+      });
+
+      document.getElementById("mainNav").classList.add("hidden");
+      document.getElementById("viewLearn").classList.add("hidden");
+      document.getElementById("viewBank").classList.add("hidden");
+      document.getElementById("viewImport").classList.add("hidden");
+      document.getElementById("viewSummary").classList.add("hidden");
+      document.getElementById("viewQuiz").classList.remove("hidden");
+
+      renderQuestion();
+    }
+
+    function renderQuestion() {
+      if (quiz.currentIdx >= quiz.queue.length) {
+        finishRound();
+        return;
+      }
+
+      quiz.answered = false;
+      const footer = document.getElementById("quizFooter");
+      footer.classList.add("hidden");
+
+      const pct = quiz.queue.length > 0 ? Math.round((quiz.currentIdx / quiz.queue.length) * 100) : 0;
+      document.getElementById("quizProgressBar").style.width = `${pct}%`;
+      document.getElementById("quizRoundXp").textContent = `+${quiz.roundXp}`;
+
+      const item = quiz.queue[quiz.currentIdx];
+      const body = document.getElementById("quizBody");
+
+      if (item.type === "mcq") {
+        renderMcqQuestion(body, item);
+      } else if (item.type === "match") {
+        renderMatchQuestion(body, item);
+      } else if (item.type === "sandhi-chips") {
+        renderSandhiChipsQuestion(body, item);
+      }
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function getDistractors(card, count = 3) {
+      const lesson = getActiveLesson();
+      let pool = lesson.cards.filter(c => c.id !== card.id && c.type === card.type && c.answer !== card.answer);
+      if (pool.length < count) {
+        pool = lesson.cards.filter(c => c.id !== card.id && c.answer !== card.answer);
+      }
+      return shuffle(pool).slice(0, count).map(c => c.answer);
+    }
+
+    function renderMcqQuestion(body, item) {
+      const c = item.card;
+      const distractors = getDistractors(c, 3);
+      const options = shuffle([c.answer, ...distractors]);
+
+      const promptAction = c.type === "vocab"
+        ? "Tap the Marathi & English meaning"
+        : c.type === "synonym"
+        ? "Tap the synonym (पर्यायपदम्)"
+        : c.type === "antonym"
+        ? "Tap the opposite (विलोमपदम्)"
+        : "Tap the correct Sandhi split";
+
+      body.innerHTML = `
+        <div class="space-y-4 animate-pop">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg ${typeColor(c.type)}">${promptAction}</span>
+            ${item.isRetry ? '<span class="text-xs font-extrabold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">Retry Missed Word</span>' : ""}
+          </div>
+          <div class="py-3">
+            <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 deva">${c.prompt}</div>
+            ${c.meaning ? `<div class="text-xs text-slate-400 font-semibold mt-1">${c.meaning}</div>` : ""}
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="mcqOptions">
+            ${options.map((opt, idx) => `
+              <button data-opt="${opt.replace(/"/g, "&quot;")}" class="mcq-opt duo-card-3d rounded-2xl border-2 border-slate-200 bg-white p-4 text-left font-bold text-base text-slate-800 deva flex items-center gap-3">
+                <span class="w-7 h-7 rounded-lg bg-slate-100 text-slate-500 text-xs font-extrabold flex items-center justify-center shrink-0">${idx + 1}</span>
+                <span>${opt}</span>
+              </button>
+            `).join("")}
+          </div>
+        </div>
+        <div class="text-xs text-slate-400 font-medium text-center">Tap an option — zero typing needed</div>
+      `;
+
+      body.querySelectorAll(".mcq-opt").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (quiz.answered) return;
+          const chosen = btn.dataset.opt;
+          const isCorrect = chosen === c.answer;
+          body.querySelectorAll(".mcq-opt").forEach(b => {
+            b.disabled = true;
+            if (b.dataset.opt === c.answer) {
+              b.classList.remove("bg-white", "text-slate-800", "border-slate-200");
+              b.classList.add("border-emerald-700", "bg-emerald-600", "text-white");
+              const numBadge = b.querySelector("span");
+              if (numBadge) {
+                numBadge.classList.remove("bg-slate-100", "text-slate-500");
+                numBadge.classList.add("bg-emerald-700", "text-white");
+              }
+            } else if (b === btn && !isCorrect) {
+              b.classList.add("border-rose-500", "bg-rose-50", "text-rose-800", "animate-shake");
+            }
+          });
+          handleAnswer(c, isCorrect, `${c.prompt} → ${c.answer}`, item);
+        });
+      });
+    }
+
+    function renderMatchQuestion(body, item) {
+      const pairs = item.cards;
+      const leftList = shuffle(pairs.map(p => ({ id: p.id, text: p.prompt })));
+      const rightList = shuffle(pairs.map(p => ({ id: p.id, text: p.answer })));
+
+      quiz.matchState = {
+        selectedLeft: null,
+        matchedIds: new Set(),
+        mistakesInRound: 0
+      };
+
+      body.innerHTML = `
+        <div class="space-y-4 animate-pop">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-sky-100 text-sky-700">Tap Matching Pairs</span>
+            <span class="text-xs font-bold text-slate-400" id="matchCount">0 / ${pairs.length}</span>
+          </div>
+          <p class="text-sm font-bold text-slate-700">Tap a word on the left, then tap its synonym/opposite on the right.</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-2.5" id="matchLeft">
+              ${leftList.map(l => `
+                <button data-side="left" data-id="${l.id}" class="match-btn duo-card-3d w-full rounded-2xl border-2 border-slate-200 bg-white p-3.5 text-center font-bold text-sm sm:text-base text-slate-800 deva">${l.text}</button>
+              `).join("")}
+            </div>
+            <div class="space-y-2.5" id="matchRight">
+              ${rightList.map(r => `
+                <button data-side="right" data-id="${r.id}" class="match-btn duo-card-3d w-full rounded-2xl border-2 border-slate-200 bg-white p-3.5 text-center font-bold text-sm sm:text-base text-slate-800 deva">${r.text}</button>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-400 font-medium text-center">Match all pairs to continue</div>
+      `;
+
+      body.querySelectorAll(".match-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (quiz.answered) return;
+          const side = btn.dataset.side;
+          const id = btn.dataset.id;
+          if (quiz.matchState.matchedIds.has(id) && side === "left") return;
+
+          if (side === "left") {
+            body.querySelectorAll('[data-side="left"]').forEach(b => b.classList.remove("border-sky-500", "bg-sky-50"));
+            quiz.matchState.selectedLeft = id;
+            btn.classList.add("border-sky-500", "bg-sky-50");
+          } else if (side === "right" && quiz.matchState.selectedLeft) {
+            const leftId = quiz.matchState.selectedLeft;
+            const leftBtn = body.querySelector(`[data-side="left"][data-id="${leftId}"]`);
+
+            if (leftId === id) {
+              playTone("correct");
+              quiz.matchState.matchedIds.add(id);
+              quiz.matchState.selectedLeft = null;
+              [leftBtn, btn].forEach(b => {
+                b.disabled = true;
+                b.classList.remove("border-sky-500", "bg-sky-50", "border-slate-200", "bg-white", "text-slate-800");
+                b.classList.add("border-emerald-700", "bg-emerald-600", "text-white", "opacity-90");
+              });
+              document.getElementById("matchCount").textContent = `${quiz.matchState.matchedIds.size} / ${pairs.length}`;
+
+              if (quiz.matchState.matchedIds.size === pairs.length) {
+                const allClean = quiz.matchState.mistakesInRound === 0;
+                handleAnswer(pairs[0], allClean, "Matched all pairs!", item, true);
+              }
+            } else {
+              playTone("wrong");
+              quiz.matchState.mistakesInRound++;
+              recordMistake(leftId);
+              [leftBtn, btn].forEach(b => b.classList.add("border-rose-400", "bg-rose-50", "animate-shake"));
+              setTimeout(() => {
+                [leftBtn, btn].forEach(b => b.classList.remove("border-rose-400", "bg-rose-50", "animate-shake", "border-sky-50", "bg-sky-50"));
+                quiz.matchState.selectedLeft = null;
+              }, 380);
+            }
+          }
+        });
+      });
+    }
+
+    function renderSandhiChipsQuestion(body, item) {
+      const c = item.card;
+      // Build chip bank: correct parts + 2-3 distractor parts from other sandhis
+      const lesson = getActiveLesson();
+      const otherParts = shuffle(
+        lesson.cards
+          .filter(x => x.type === "sandhi" && x.id !== c.id && Array.isArray(x.parts))
+          .flatMap(x => x.parts)
+          .filter(p => !c.parts.includes(p))
+      ).slice(0, 3);
+
+      const bankChips = shuffle([...c.parts, ...otherParts]).map((text, idx) => ({ id: `chip_${idx}`, text }));
+      quiz.chipState = { selected: [], bank: bankChips };
+
+      body.innerHTML = `
+        <div class="space-y-4 animate-pop">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700">Tap Chips to Split Sandhi</span>
+            ${item.isRetry ? '<span class="text-xs font-extrabold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full border border-rose-200">Retry Missed Word</span>' : ""}
+          </div>
+          <div class="py-2">
+            <div class="text-2xl sm:text-3xl font-extrabold text-slate-900 deva">${c.prompt}</div>
+            ${c.rule ? `<div class="text-xs text-indigo-600 font-bold mt-1">Rule hint: ${c.rule}</div>` : ""}
+          </div>
+
+          <!-- Answer Tray -->
+          <div id="chipTray" class="min-h-[58px] rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-3 flex flex-wrap items-center gap-2 deva">
+            <span class="text-xs text-slate-400 font-semibold">Tap word chips below in order…</span>
+          </div>
+
+          <!-- Chip Bank -->
+          <div id="chipBank" class="flex flex-wrap gap-2.5 pt-1">
+            ${bankChips.map(ch => `
+              <button data-chip-id="${ch.id}" class="chip-btn duo-card-3d px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-white font-bold text-base text-slate-800 deva">${ch.text}</button>
+            `).join("")}
+          </div>
+        </div>
+        <div class="flex justify-end pt-2">
+          <button id="btnCheckChips" disabled class="duo-btn duo-green-3d py-2.5 px-6 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-sm disabled:opacity-40 disabled:cursor-not-allowed">
+            Check Split
+          </button>
+        </div>
+      `;
+
+      function redrawChips() {
+        const tray = document.getElementById("chipTray");
+        const checkBtn = document.getElementById("btnCheckChips");
+        if (quiz.chipState.selected.length === 0) {
+          tray.innerHTML = `<span class="text-xs text-slate-400 font-semibold">Tap word chips below in order…</span>`;
+          checkBtn.disabled = true;
+        } else {
+          tray.innerHTML = quiz.chipState.selected.map((ch, idx) => `
+            ${idx > 0 ? '<span class="font-extrabold text-slate-400">+</span>' : ""}
+            <button data-remove-id="${ch.id}" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-sm deva">${ch.text}</button>
+          `).join("");
+          checkBtn.disabled = quiz.chipState.selected.length < 2;
+
+          tray.querySelectorAll("[data-remove-id]").forEach(b => {
+            b.addEventListener("click", () => {
+              if (quiz.answered) return;
+              const rid = b.dataset.removeId;
+              quiz.chipState.selected = quiz.chipState.selected.filter(x => x.id !== rid);
+              const bankBtn = body.querySelector(`[data-chip-id="${rid}"]`);
+              if (bankBtn) bankBtn.classList.remove("opacity-30", "pointer-events-none");
+              redrawChips();
+            });
+          });
+        }
+      }
+
+      body.querySelectorAll(".chip-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (quiz.answered) return;
+          const ch = quiz.chipState.bank.find(x => x.id === btn.dataset.chipId);
+          if (!ch) return;
+          quiz.chipState.selected.push(ch);
+          btn.classList.add("opacity-30", "pointer-events-none");
+          redrawChips();
+        });
+      });
+
+      document.getElementById("btnCheckChips").addEventListener("click", () => {
+        if (quiz.answered) return;
+        const built = quiz.chipState.selected.map(x => x.text).join(" + ");
+        const isCorrect = built === c.answer;
+        document.getElementById("btnCheckChips").disabled = true;
+        handleAnswer(c, isCorrect, `${c.prompt} = ${c.answer}`, item);
+      });
+    }
+
+    function recordMistake(cardId) {
+      const p = getCardProgress(cardId);
+      state.progress[cardId] = {
+        mastery: Math.max(0, p.mastery - 1),
+        mistakes: p.mistakes + 1,
+        lastSeen: Date.now()
+      };
+      saveState();
+    }
+
+    function handleAnswer(card, isCorrect, detailText, item, skipRequeue = false) {
+      quiz.answered = true;
+      quiz.totalAttempts++;
+
+      const p = getCardProgress(card.id);
+      if (isCorrect) {
+        playTone("correct");
+        quiz.correctAttempts++;
+        quiz.roundXp += 10;
+        state.xp += 10;
+        state.streak += 1;
+        state.progress[card.id] = {
+          mastery: Math.min(3, p.mastery + 1),
+          mistakes: p.mistakes,
+          lastSeen: Date.now()
+        };
+      } else {
+        playTone("wrong");
+        state.streak = 0;
+        if (!skipRequeue) {
+          recordMistake(card.id);
+          // Mistake Loop: re-queue this exact card 2 slots later (capped at 2 retries per round)
+          const retries = quiz.retryCounts[card.id] || 0;
+          if (retries < 2) {
+            quiz.retryCounts[card.id] = retries + 1;
+            const insertPos = Math.min(quiz.queue.length, quiz.currentIdx + 3);
+            quiz.queue.splice(insertPos, 0, {
+              type: item.type,
+              card,
+              isRetry: true
+            });
+          }
+        }
+      }
+      saveState();
+      renderStats();
+
+      // Show Feedback Footer
+      const footer = document.getElementById("quizFooter");
+      const icon = document.getElementById("feedbackIcon");
+      const title = document.getElementById("feedbackTitle");
+      const detail = document.getElementById("feedbackDetail");
+      const nextBtn = document.getElementById("btnNextQuestion");
+
+      footer.classList.remove("hidden", "bg-emerald-50", "border-emerald-200", "bg-rose-50", "border-rose-200");
+      if (isCorrect) {
+        footer.classList.add("bg-emerald-100", "border-emerald-400");
+        icon.className = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-600 text-white";
+        icon.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+        title.className = "font-extrabold text-base text-emerald-900";
+        title.textContent = "Nice! +10 XP";
+        detail.className = "text-xs sm:text-sm mt-0.5 text-emerald-800 deva";
+        detail.textContent = card.hook ? `${detailText} • ${card.hook}` : detailText;
+        nextBtn.className = "duo-btn duo-green-3d py-2.5 px-6 rounded-xl font-extrabold text-sm text-white bg-emerald-500 hover:bg-emerald-600 shrink-0";
+      } else {
+        footer.classList.add("bg-rose-50", "border-rose-200");
+        icon.className = "w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-rose-500 text-white";
+        icon.innerHTML = '<i data-lucide="rotate-ccw" class="w-5 h-5"></i>';
+        title.className = "font-extrabold text-base text-rose-800";
+        title.textContent = "Re-queued in Mistake Loop!";
+        detail.className = "text-xs sm:text-sm mt-0.5 text-rose-700 deva";
+        detail.textContent = `Correct: ${detailText}${card.hook ? ` (${card.hook})` : ""}`;
+        nextBtn.className = "duo-btn py-2.5 px-6 rounded-xl font-extrabold text-sm text-white bg-rose-500 hover:bg-rose-600 shrink-0";
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function finishRound() {
+      quiz.active = false;
+      playTone("win");
+      if (window.confetti) {
+        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+      }
+
+      const acc = quiz.totalAttempts > 0 ? Math.round((quiz.correctAttempts / quiz.totalAttempts) * 100) : 100;
+      const lesson = getActiveLesson();
+      const masteredCount = lesson.cards.filter(c => getCardProgress(c.id).mastery >= 3).length;
+
+      document.getElementById("summaryXp").textContent = `+${quiz.roundXp}`;
+      document.getElementById("summaryAcc").textContent = `${acc}%`;
+      document.getElementById("summaryMastered").textContent = String(masteredCount);
+
+      document.getElementById("viewQuiz").classList.add("hidden");
+      document.getElementById("viewSummary").classList.remove("hidden");
+      renderStats();
+    }
+
+    function startMistakeWorkout() {
+      const lesson = getActiveLesson();
+      const missed = lesson.cards.filter(c => getCardProgress(c.id).mistakes > 0 && getCardProgress(c.id).mastery < 3);
+      if (missed.length === 0) {
+        showToast("No missed words right now! Try a unit round.");
+        return;
+      }
+      const picked = missed.sort((a, b) => getCardProgress(b.id).mistakes - getCardProgress(a.id).mistakes).slice(0, 6);
+      startRound("Mistake Workout", picked);
+    }
+
+    function startSmartReview() {
+      const lesson = getActiveLesson();
+      const freshPool = shuffle(lesson.cards).sort((a, b) => {
+        const pa = getCardProgress(a.id);
+        const pb = getCardProgress(b.id);
+        const aRecent = lastSmartMixIds.has(a.id) ? 1 : 0;
+        const bRecent = lastSmartMixIds.has(b.id) ? 1 : 0;
+        if (aRecent !== bRecent) return aRecent - bRecent;
+        if (pa.mastery !== pb.mastery) return pa.mastery - pb.mastery;
+        return pa.lastSeen - pb.lastSeen;
+      });
+      const picked = freshPool.slice(0, 6);
+      lastSmartMixIds = new Set(picked.map(c => c.id));
+      startRound("Smart SRS Mix", picked);
+    }
+
+    // =========================================================
+    // 9. PDF & TEXT PARSER (IN-BROWSER WITH PDF.JS)
+    // =========================================================
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+
+    function parseTextbookText(rawText) {
+      const lines = rawText
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(Boolean);
+
+      const extracted = [];
+      let sectionHint = "synonym";
+      const seen = new Set();
+
+      lines.forEach((line, idx) => {
+        if (/पर्याय/.test(line)) { sectionHint = "synonym"; return; }
+        if (/विलोम|विरुद्ध/.test(line)) { sectionHint = "antonym"; return; }
+        if (/सन्धि|संधि/.test(line)) { sectionHint = "sandhi"; return; }
+
+        // Pattern 1: Sandhi line with '+'
+        if (line.includes("+")) {
+          const clean = line.replace(/^\d+[\.\)]\s*/, "");
+          const match = clean.match(/^([^\s]+(?:\s+[^\s]+)?)\s+([^\+]+(?:\+[^\+]+)+)(?:\s+(.*))?$/);
+          if (match) {
+            const prompt = match[1].trim();
+            const splitRaw = match[2].trim();
+            const parts = splitRaw.split("+").map(s => s.trim()).filter(Boolean);
+            const rule = (match[3] || "सन्धिः").trim();
+            if (prompt && parts.length >= 2 && !seen.has(prompt)) {
+              seen.add(prompt);
+              extracted.push({
+                id: `imp_snd_${Date.now()}_${idx}`,
+                type: "sandhi",
+                prompt,
+                parts,
+                answer: parts.join(" + "),
+                rule,
+                hook: `${prompt} = ${parts.join(" + ")}`
+              });
+            }
+          }
+          return;
+        }
+
+        // Pattern 2: Synonym / Antonym pair separated by '-', '–', '—', ':'
+        const pairMatch = line.match(/^([^\s\-–—:]+)\s*[-–—:]\s*(.+)$/);
+        if (pairMatch) {
+          const left = pairMatch[1].trim();
+          const rightAll = pairMatch[2].trim();
+          const firstRight = rightAll.split(/[,/]/)[0].trim();
+          if (left && firstRight && !seen.has(left)) {
+            seen.add(left);
+            extracted.push({
+              id: `imp_${sectionHint}_${Date.now()}_${idx}`,
+              type: sectionHint === "sandhi" ? "synonym" : sectionHint,
+              prompt: left,
+              answer: firstRight,
+              meaning: rightAll,
+              hook: `${left} → ${rightAll}`
+            });
+          }
+        }
+      });
+
+      return extracted;
+    }
+
+    function showImportPreview(cards, statusMsg, isError = false) {
+      const statusEl = document.getElementById("importStatus");
+      statusEl.className = `text-xs font-semibold px-3 py-2 rounded-xl ${isError ? "bg-rose-50 text-rose-700" : "bg-emerald-50 text-emerald-700"}`;
+      statusEl.textContent = statusMsg;
+      statusEl.classList.remove("hidden");
+
+      const box = document.getElementById("importPreviewBox");
+      if (!cards || cards.length === 0) {
+        box.classList.add("hidden");
+        return;
+      }
+
+      importedPreviewCards = cards;
+      box.classList.remove("hidden");
+      document.getElementById("importCountLabel").textContent = `${cards.length} cards ready to import`;
+      document.getElementById("importPreviewList").innerHTML = cards.map(c => `
+        <div class="rounded-xl border border-slate-200 p-2.5 bg-slate-50 deva">
+          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${typeColor(c.type)}">${c.type}</span>
+          <div class="font-bold text-sm text-slate-900 mt-1">${c.prompt} → <span class="text-emerald-700">${c.answer}</span></div>
+        </div>
+      `).join("");
+    }
+
+    // =========================================================
+    // 10. EVENT LISTENERS
+    // =========================================================
+    document.querySelectorAll(".nav-tab").forEach(btn => {
+      btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+    });
+
+    document.getElementById("lessonSelect").addEventListener("change", e => {
+      state.activeLessonId = e.target.value;
+      saveState();
+      renderLearnView();
+    });
+
+    document.getElementById("btnSoundToggle").addEventListener("click", () => {
+      state.soundOn = !state.soundOn;
+      saveState();
+      renderStats();
+    });
+
+    document.getElementById("btnMistakeWorkout").addEventListener("click", startMistakeWorkout);
+    document.getElementById("btnSmartReview").addEventListener("click", startSmartReview);
+
+    document.getElementById("btnExitQuiz").addEventListener("click", () => {
+      quiz.active = false;
+      switchTab("learn");
+    });
+
+    document.getElementById("btnNextQuestion").addEventListener("click", () => {
+      quiz.currentIdx++;
+      renderQuestion();
+    });
+
+    document.getElementById("btnSummaryHome").addEventListener("click", () => switchTab("learn"));
+    document.getElementById("btnSummaryMistakes").addEventListener("click", startSmartReview);
+
+    document.querySelectorAll(".bank-filter").forEach(btn => {
+      btn.addEventListener("click", () => {
+        bankFilter = btn.dataset.filter;
+        renderBankView();
+      });
+    });
+
+    document.getElementById("btnResetProgress").addEventListener("click", () => {
+      state.xp = 0;
+      state.streak = 0;
+      state.progress = {};
+      saveState();
+      renderStats();
+      renderBankView();
+      showToast("Progress reset for a fresh start.");
+    });
+
+    document.getElementById("btnParseText").addEventListener("click", () => {
+      const txt = document.getElementById("pasteTextInput").value.trim();
+      if (!txt) {
+        showImportPreview([], "Paste some textbook lines first.", true);
+        return;
+      }
+      const cards = parseTextbookText(txt);
+      if (cards.length === 0) {
+        showImportPreview([], "Could not detect pairs. Use format like 'वृक्षः - तरुः' or 'गृहाणेमाम्  गृहाण + इमाम्'.", true);
+      } else {
+        showImportPreview(cards, `Extracted ${cards.length} cards from text!`);
+      }
+    });
+
+    document.getElementById("pdfFileInput").addEventListener("change", async e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      document.getElementById("pdfFileName").textContent = file.name;
+      document.getElementById("newLessonTitle").value = file.name.replace(/\.pdf$/i, "");
+
+      if (!window.pdfjsLib) {
+        showImportPreview([], "PDF reader library is still loading. Try pasting text or retry in a moment.", true);
+        return;
+      }
+
+      try {
+        showImportPreview([], "Reading PDF pages…");
+        const buf = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+        let fullText = "";
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const content = await page.getTextContent();
+          // Reconstruct lines by Y coordinate
+          let lastY = null;
+          let line = "";
+          content.items.forEach(item => {
+            const y = Math.round(item.transform[5]);
+            if (lastY !== null && Math.abs(y - lastY) > 4) {
+              fullText += line + "\n";
+              line = "";
+            }
+            line += (line ? " " : "") + item.str;
+            lastY = y;
+          });
+          if (line) fullText += line + "\n";
+        }
+        const cards = parseTextbookText(fullText);
+        if (cards.length === 0) {
+          showImportPreview([], "No standard synonym/antonym/sandhi lines found (if this PDF uses legacy fonts or scanned images, paste the text directly).", true);
+        } else {
+          showImportPreview(cards, `Parsed ${pdf.numPages} page(s) and extracted ${cards.length} cards!`);
+        }
+      } catch (err) {
+        showImportPreview([], "Could not read that PDF. Try pasting the text lines instead.", true);
+      }
+    });
+
+    document.getElementById("btnSaveImportedLesson").addEventListener("click", () => {
+      if (importedPreviewCards.length === 0) return;
+      const title = document.getElementById("newLessonTitle").value.trim() || "Custom Sanskrit Lesson";
+      const newLesson = {
+        id: `lesson_${Date.now()}`,
+        title,
+        cards: importedPreviewCards
+      };
+      state.lessons.push(newLesson);
+      state.activeLessonId = newLesson.id;
+      saveState();
+      importedPreviewCards = [];
+      document.getElementById("importPreviewBox").classList.add("hidden");
+      document.getElementById("importStatus").classList.add("hidden");
+      switchTab("learn");
+      showToast(`Saved "${title}"!`);
+    });
+
+    function openSaveModal() {
+      document.getElementById("modalLessonCount").textContent = String(state.lessons.length);
+      document.getElementById("modalTrackedCount").textContent = String(Object.keys(state.progress).length);
+      document.getElementById("saveModal").classList.remove("hidden");
+      if (window.lucide) lucide.createIcons();
+    }
+
+    document.getElementById("btnOpenSaveModal").addEventListener("click", openSaveModal);
+    document.getElementById("btnCloseSaveModal").addEventListener("click", () => {
+      document.getElementById("saveModal").classList.add("hidden");
+    });
+    document.getElementById("saveModal").addEventListener("click", e => {
+      if (e.target.id === "saveModal") document.getElementById("saveModal").classList.add("hidden");
+    });
+
+    document.getElementById("btnDownloadBackup").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `sanskrit-duo-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("Backup downloaded!");
+    });
+
+    document.getElementById("restoreBackupInput").addEventListener("change", async e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        if (!parsed || !Array.isArray(parsed.lessons)) {
+          showToast("Invalid backup file.");
+          return;
+        }
+        state = parsed;
+        saveState();
+        document.getElementById("saveModal").classList.add("hidden");
+        renderLearnView();
+        showToast("Backup restored!");
+      } catch (err) {
+        showToast("Could not read backup file.");
+      }
+      e.target.value = "";
+    });
+
+    let welcomeCards = [];
+
+    async function extractPdfText(file) {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      let fullText = "";
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const content = await page.getTextContent();
+        let lastY = null;
+        let line = "";
+        content.items.forEach(item => {
+          const y = Math.round(item.transform[5]);
+          if (lastY !== null && Math.abs(y - lastY) > 4) {
+            fullText += line + "\n";
+            line = "";
+          }
+          line += (line ? " " : "") + item.str;
+          lastY = y;
+        });
+        if (line) fullText += line + "\n";
+      }
+      return { fullText, numPages: pdf.numPages };
+    }
+
+    document.getElementById("btnBrandHome").addEventListener("click", showWelcomeScreen);
+    document.getElementById("btnContinueLesson").addEventListener("click", () => switchTab("learn"));
+
+    document.getElementById("welcomePdfInput").addEventListener("change", async e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      document.getElementById("welcomePdfTitle").textContent = file.name;
+      document.getElementById("welcomeLessonTitle").value = file.name.replace(/\.pdf$/i, "");
+      const st = document.getElementById("welcomeStatus");
+      const box = document.getElementById("welcomePreviewBox");
+
+      if (!window.pdfjsLib) {
+        st.className = "text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-rose-50 text-rose-700";
+        st.textContent = "PDF reader is still loading. Try again in a second or tap Continue below.";
+        st.classList.remove("hidden");
+        return;
+      }
+
+      try {
+        st.className = "text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-emerald-50 text-emerald-700";
+        st.textContent = "Reading PDF pages and building custom drills…";
+        st.classList.remove("hidden");
+        const { fullText, numPages } = await extractPdfText(file);
+        welcomeCards = parseTextbookText(fullText);
+
+        if (welcomeCards.length === 0) {
+          box.classList.add("hidden");
+          st.className = "text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-amber-50 text-amber-800";
+          st.textContent = `Read ${numPages} page(s), but couldn't auto-detect standard pairs (scanned or legacy-font PDFs can be pasted in the Import PDF tab).`;
+        } else {
+          const counts = {
+            vocab: welcomeCards.filter(c => c.type === "vocab").length,
+            synonym: welcomeCards.filter(c => c.type === "synonym").length,
+            antonym: welcomeCards.filter(c => c.type === "antonym").length,
+            sandhi: welcomeCards.filter(c => c.type === "sandhi").length
+          };
+          st.textContent = `Ready! Extracted ${welcomeCards.length} cards from ${numPages} page(s).`;
+          document.getElementById("welcomeBreakdown").innerHTML = [
+            counts.vocab ? `<span class="px-2.5 py-1 rounded-full bg-sky-100 text-sky-700">${counts.vocab} Vocab</span>` : "",
+            counts.synonym ? `<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">${counts.synonym} Synonyms</span>` : "",
+            counts.antonym ? `<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">${counts.antonym} Opposites</span>` : "",
+            counts.sandhi ? `<span class="px-2.5 py-1 rounded-full bg-indigo-100 text-indigo-700">${counts.sandhi} Sandhis</span>` : ""
+          ].join("");
+          box.classList.remove("hidden");
+        }
+      } catch (err) {
+        box.classList.add("hidden");
+        st.className = "text-xs font-semibold px-3.5 py-2.5 rounded-xl bg-rose-50 text-rose-700";
+        st.textContent = "Could not read that PDF. Try pasting the text in the Import PDF tab.";
+        st.classList.remove("hidden");
+      }
+      e.target.value = "";
+    });
+
+    document.getElementById("btnStartWelcomePdf").addEventListener("click", () => {
+      if (welcomeCards.length === 0) return;
+      const title = document.getElementById("welcomeLessonTitle").value.trim() || "Custom PDF Lesson";
+      const newLesson = { id: `lesson_${Date.now()}`, title, cards: welcomeCards };
+      state.lessons.push(newLesson);
+      state.activeLessonId = newLesson.id;
+      saveState();
+      welcomeCards = [];
+      document.getElementById("welcomePreviewBox").classList.add("hidden");
+      document.getElementById("welcomeStatus").classList.add("hidden");
+      switchTab("learn");
+      showToast(`Loaded "${title}"!`);
+    });
+
+    // Boot
+    showWelcomeScreen();
+  </script>
+</body>
+</html>
